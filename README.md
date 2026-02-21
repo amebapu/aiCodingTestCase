@@ -1,5 +1,5 @@
 # aiCodingTestCase
-test the ai code skill
+
 # Case 1 Prompt：多电梯智能调度模拟器
 
 > 以下为发给各模型的完整 Prompt，直接复制粘贴使用。
