@@ -1,0 +1,71 @@
+---
+
+## Case 1 电梯调度 — 自查 Prompt
+
+```
+请仔细重新审阅我上一条消息中的全部需求，与你当前的实现逐项对照。以下是关键检查清单，请确认每一项是否已正确实现：
+
+功能层面：
+□ 6 部电梯是否独立运行，各自有正确的状态管理？
+□ 调度算法是否考虑了距离优先、顺路搭载、负载均衡、满载跳过？
+□ 时间步进模拟是否正确（0.5秒为步长）？
+□ loadScenario() 能否正确加载 JSON 格式的乘客数据？
+□ runSimulation() 能否快进跑完全部乘客？
+□ getMetrics() 是否返回正确计算的 avgWaitTime/maxWaitTime/avgTravelTime/totalDelivered？
+□ getEventLog() 是否记录了每一个事件（乘客到达、电梯移动、上下客）？
+
+可视化层面：
+□ 左侧是否有 6 部电梯的实时动画（楼层位置、方向箭头、载客数）？
+□ 右侧是否有实时统计面板（已运送/等待中/平均等待/最长等待/各梯状态）？
+□ 是否有控制按钮（开始/暂停/重置）和速度切换（1x/5x/10x/20x）？
+□ 是否内置了"早高峰"默认场景（硬编码的 100 人固定数据）？
+□ 楼层是否从下到上排列（1楼在底部）？
+□ 所有乘客是否都能被最终送达？是否没有"丢失"乘客？
+
+请逐项排查，将未实现或有误的部分修复完善。输出修改后的完整 HTML 文件。
+```
+
+---
+
+## Case 2 敏捷开发死循环 — 自查 Prompt
+
+```
+请仔细重新审阅我上一条消息中的全部需求，与你当前的实现逐项对照。以下是关键检查清单，请确认每一项是否已正确实现：
+
+五者闭环依赖（最重要）：
+□ 开发者消化需求（PRD）后是否在原地产出代码提交（屎山或正常代码）？
+□ 屎山代码是否停留在原地不动，永远不会自己消失？
+□ Bug 是否从屎山代码中自动诞生（bugSpawnInterval + shitPerBug 控制）？
+□ Bug 是否朝屎山代码（而不是开发者或需求）移动？
+□ Bug 吞噬屎山后是否在附近生成 1-2 个新需求？
+□ 正常代码是否有存活时间（cleanCodeTTL），到期后淡出消失？
+□ Bug 经过正常代码附近时是否有概率腐蚀为屎山（bugCorruptRate）？
+□ 如果没有 Bug → 屎山堆积 → 开发者技术债爆表下线？（闭环验证）
+□ 如果没有开发者 → 无代码块 → Bug 因无屎山可吃消亡？（闭环验证）
+
+实体行为层面：
+□ 需求（绿色◆）是否按 prdInterval 间隔自动生长？
+□ 需求超过 prdDeadline 后是否自动从画布消失（过期作废）？
+□ 开发者（蓝色●）移动速度 3px/帧？朝最近需求移动并消化？
+□ 开发者消化后是否按 shitCodeRate 概率产出屎山代码 vs 正常代码？
+□ 开发者名下 ≥ debtLimit 个屎山 → 技术债爆表（变灰）→ 10 秒未改善 → 下线？
+□ 开发者连续 idleTimeout 秒无需求 → 摸鱼离职消失？
+□ Bug（红色▲）移动速度 2.5px/帧？朝屎山代码移动？
+□ Bug 连续 bugStarveTimeout 秒未吞噬屎山 → 消失？
+□ 开发者和 Bug 数量均不会自动增长，只能通过手动按钮添加？
+
+接口层面：
+□ window.EcoSystem 是否正确暴露？
+□ loadConfig() 能否正确加载参数（initialDevs, initialBugs, prdInterval, prdDeadline, shitCodeRate, cleanCodeTTL, bugCorruptRate, bugSpawnInterval, shitPerBug, debtLimit, idleTimeout, bugStarveTimeout）？
+□ run(seconds) 能否以最快速度完成 N 秒模拟后 resolve（快进，非真实等待）？
+□ getStats() 是否返回 populations（prds, devs, bugs, shitCode, cleanCode）、totalConsumed、totalShitCleaned、totalDevsDied、totalBugsDied、totalCorrupted、totalBugsSpawned、totalCleanExpired、totalPrdExpired？
+□ getEventLog() 是否记录 prd_created、prd_consumed、prd_expired、shit_code_created、clean_code_created、clean_code_expired、bug_spawned、shit_cleaned、code_corrupted、dev_died、bug_died 事件？
+
+可视化层面：
+□ 左侧画布是否有五种元素（需求◆、开发者●、Bug▲、屎山代码■、正常代码□）？
+□ 右侧是否有种群折线图（Canvas 自绘，五条曲线）？
+□ 是否有系统状态标签（敏捷运转/需求堆积如山/技术债危机/Bug风暴/代码荒漠）？
+□ 参数面板滑块是否可实时调节？控制按钮（开始/暂停/重置/+5开发者/+3Bug/速度）是否正常？
+
+请逐项排查，将未实现或有误的部分修复完善。输出修改后的完整 HTML 文件。
+```
