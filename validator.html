@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>大模型评测验证器 v4</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f0f1a;
+            color: #e0e0e0;
+            min-height: 100vh
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1a3e, #2d1b4e);
+            padding: 20px 30px;
+            border-bottom: 1px solid #333
+        }
+
+        .header h1 {
+            font-size: 22px;
+            color: #a78bfa
+        }
+
+        .header p {
+            font-size: 13px;
+            color: #888;
+            margin-top: 4px
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 80px)
+        }
+
+        .sidebar {
+            width: 340px;
+            background: #141428;
+            border-right: 1px solid #2a2a4a;
+            padding: 16px;
+            overflow-y: auto
+        }
+
+        .main {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto
+        }
+
+        .section {
+            margin-bottom: 20px
+        }
+
+        .section h3 {
+            font-size: 14px;
+            color: #a78bfa;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #2a2a4a
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 4px
+        }
+
+        select,
+        button {
+            width: 100%;
+            padding: 8px 12px;
+            background: #1e1e3a;
+            border: 1px solid #3a3a5a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 13px;
+            margin-bottom: 12px;
+            cursor: pointer
+        }
+
+        select:hover,
+        button:hover {
+            border-color: #a78bfa
+        }
+
+        button {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border: none;
+            font-weight: 600;
+            transition: all .2s
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, .3)
+        }
+
+        button:disabled {
+            background: #333;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #dc2626, #b91c1c)
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600
+        }
+
+        .badge-pass {
+            background: #065f46;
+            color: #6ee7b7
+        }
+
+        .badge-fail {
+            background: #7f1d1d;
+            color: #fca5a5
+        }
+
+        .badge-warn {
+            background: #78350f;
+            color: #fcd34d
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px
+        }
+
+        .results-table th {
+            background: #1a1a3e;
+            padding: 10px 12px;
+            text-align: left;
+            color: #a78bfa;
+            font-weight: 600;
+            border-bottom: 2px solid #3a3a5a
+        }
+
+        .results-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #2a2a3a
+        }
+
+        .results-table tr:hover {
+            background: #1a1a2e
+        }
+
+        #logArea {
+            background: #0a0a1a;
+            border: 1px solid #2a2a4a;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 12px
+        }
+
+        .log-info {
+            color: #93c5fd
+        }
+
+        .log-pass {
+            color: #6ee7b7
+        }
+
+        .log-fail {
+            color: #fca5a5
+        }
+
+        .log-warn {
+            color: #fcd34d
+        }
+
+        .score-card {
+            background: linear-gradient(135deg, #1a1a3e, #1e1e4a);
+            border: 1px solid #3a3a6a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            text-align: center
+        }
+
+        .score-card .score {
+            font-size: 48px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa, #6ee7b7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent
+        }
+
+        .score-card .label {
+            font-size: 13px;
+            color: #888;
+            margin-top: 4px
+        }
+
+        .file-drop {
+            border: 2px dashed #3a3a5a;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 12px;
+            transition: all .2s
+        }
+
+        .file-drop.drag-over {
+            border-color: #a78bfa;
+            background: rgba(167, 139, 250, .1);
+            color: #a78bfa
+        }
+
+        .weight-legend {
+            font-size: 11px;
+            color: #888;
+            margin-top: 8px;
+            padding: 8px;
+            background: #1a1a2e;
+            border-radius: 6px
+        }
+
+        .weight-legend b {
+            color: #fcd34d
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🔬 大模型代码评测验证器 v4</h1>
+        <p>加载模型 HTML → 自动运行验收场景 → 加权评分 → 导出报告</p>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <div class="section">
+                <h3>📂 步骤 1：选择测试</h3>
+                <label>Case</label>
+                <select id="caseSelect">
+                    <option value="">-- 请选择 --</option>
+                    <option value="elevator">Case 1: 电梯调度</option>
+                    <option value="ecosystem">Case 2: 生态模拟</option>
+                    <option value="arena">Case 3: 机器人擂台</option>
+                </select>
+                <label>Round</label>
+                <select id="roundSelect">
+                    <option value="1">Round 1 (Zero-shot)</option>
+                    <option value="2">Round 2 (需求变更)</option>
+                </select>
+            </div>
+            <div class="section">
+                <h3>📄 步骤 2：加载文件</h3>
+                <label>模型名称</label>
+                <select id="modelSelect">
+                    <option value="">-- 请选择 --</option>
+                    <option value="glm5">GLM-5</option>
+                    <option value="minimax">MiniMax M2.5</option>
+                    <option value="kimi">Kimi K2.5</option>
+                    <option value="claude">Claude Opus 4.6</option>
+                </select>
+                <label>HTML 文件</label>
+                <div class="file-drop" id="fileDrop">拖入 HTML 文件或点击选择
+                    <input type="file" id="fileInput" accept=".html,.htm" style="display:none">
+                </div>
+            </div>
+            <div class="section">
+                <h3>🚀 步骤 3：运行</h3>
+                <button id="btnRun" disabled>▶ 运行全部验收场景</button>
+                <div style="margin:6px 0;font-size:12px;">
+                    <label style="display:inline;cursor:pointer;"><input type="checkbox" id="chkMedian" checked> 🎲
+                        每场景跑3次取中位数（消除生态模拟随机性）</label>
+                </div>
+                <button id="btnExport" disabled class="danger">📊 导出报告</button>
+                <div class="weight-legend">
+                    <b>评分规则</b>：验证项分为<b style="color:#fca5a5">关键项(×3)</b>和普通项(×1)。<br>
+                    关键项=核心功能（如送达率、闭环运行），普通项=辅助验证（如接口、日志）。<br>
+                    <b>加权通过率 = Σ(通过×权重) / Σ(权重)</b>
+                </div>
+            </div>
+            <div class="section">
+                <h3>📋 场景列表</h3>
+                <div id="scenarioList" style="font-size:12px;color:#666;">请先选择 Case</div>
+            </div>
+        </div>
+        <div class="main">
+            <div id="welcomeView" style="text-align:center;padding:80px 20px;color:#555;">
+                <div style="font-size:48px;margin-bottom:16px;">🔬</div>
+                <h2 style="color:#888;font-weight:400">选择 Case → 加载文件 → 运行验收</h2>
+                <p style="margin-top:8px;font-size:13px">关键验证项权重 ×3，确保核心功能作为评分主导</p>
+            </div>
+            <div id="resultsView" style="display:none;">
+                <div style="display:flex;gap:16px;margin-bottom:20px;">
+                    <div class="score-card" style="flex:1;">
+                        <div class="score" id="scoreTotal">--</div>
+                        <div class="label">加权通过率</div>
+                    </div>
+                    <div class="score-card" style="flex:1;">
+                        <div class="score" id="scoreRound">--</div>
+                        <div class="label">Round 得分</div>
+                    </div>
+                    <div class="score-card" style="flex:1;">
+                        <div class="score" id="scoreScenarios">--</div>
+                        <div class="label">通过场景</div>
+                    </div>
+                    <div class="score-card" style="flex:1;display:none;" id="scoreMetricCard">
+                        <div class="score" id="scoreMetric" style="font-size:36px;">--</div>
+                        <div class="label">人均总耗时(加权)</div>
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>📊 验收结果</h3>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>场景</th>
+                                <th>状态</th>
+                                <th>加权分</th>
+                                <th>详情</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody"></tbody>
+                    </table>
+                </div>
+                <div class="section" id="evalSection" style="display:none;">
+                    <h3>📝 自动评价结论</h3>
+                    <div id="evalContent" style="font-size:13px;line-height:1.8;"></div>
+                </div>
+                <div class="section">
+                    <h3>📋 运行日志</h3>
+                    <div id="logArea"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div style="display:none;position:fixed;bottom:0;left:0;right:0;height:1px;overflow:hidden;">
+        <iframe id="testFrame" style="width:1200px;height:800px;border:none;"></iframe>
+    </div>
+
+    <script>
+        // ========== STATE ==========
+        const state = { currentCase: null, currentRound: '1', currentModel: null, fileContent: null, results: [], running: false };
+
+        // ========== VALIDATOR TEST SCENARIOS ==========
+        // ⚠️ 这些数据与 prompt 中的演示数据完全不同！
+        // prompt 演示: 100人全从1楼出发, time 0-193
+        // validator 测试: 1000+人规模, 多楼层, 多模式, 极端压测
+
+        // 确定性数据生成器（不用 Math.random，用固定种子哈希）
+        function seedHash(i, salt) { return ((i * 2654435761 + salt * 40503) >>> 0) % 1000000 }
+        function genFloor(i, salt, lo, hi) { return lo + seedHash(i, salt) % (hi - lo + 1) }
+
+        // 场景A: 早高峰入楼（800人从1-3楼出发去各层，密集到达）
+        const V_MORNING_800 = [];
+        for (let i = 0; i < 800; i++) {
+            const fromFloor = 1 + seedHash(i, 7) % 3; // 1-3楼大厅
+            const toFloor = genFloor(i, 13, 4, 40);
+            const time = Math.floor(i * 0.6 + seedHash(i, 3) % 3); // 0~483s 内陆续到达
+            V_MORNING_800.push({ time, from: fromFloor, to: toFloor });
+        }
+        V_MORNING_800.sort((a, b) => a.time - b.time);
+
+        // 场景B: 晚高峰离楼（600人从各层下到1-3楼）
+        const V_EVENING_600 = [];
+        for (let i = 0; i < 600; i++) {
+            const fromFloor = genFloor(i, 17, 5, 40);
+            const toFloor = 1 + seedHash(i, 11) % 3;
+            const time = Math.floor(i * 0.8 + seedHash(i, 5) % 4);
+            V_EVENING_600.push({ time, from: fromFloor, to: toFloor });
+        }
+        V_EVENING_600.sort((a, b) => a.time - b.time);
+
+        // 场景C: 午餐双向混战（400人双向流动: 上楼+下楼+跨楼层）
+        const V_LUNCH_400 = [];
+        for (let i = 0; i < 400; i++) {
+            let from, to;
+            const mode = seedHash(i, 23) % 3;
+            if (mode === 0) { from = genFloor(i, 29, 5, 40); to = genFloor(i, 31, 1, 3); } // 下楼吃饭
+            else if (mode === 1) { from = genFloor(i, 37, 1, 3); to = genFloor(i, 41, 5, 40); } // 吃完回来
+            else { from = genFloor(i, 43, 5, 40); to = genFloor(i, 47, 5, 40); if (to === from) to = from < 40 ? from + 1 : from - 1; } // 跨部门串门
+            const time = Math.floor(i * 1.2 + seedHash(i, 9) % 5);
+            V_LUNCH_400.push({ time, from, to });
+        }
+        V_LUNCH_400.sort((a, b) => a.time - b.time);
+
+        // 场景D: 跨楼层迁移（300人中间层互相穿梭，无1楼参与）
+        const V_CROSS_300 = [];
+        for (let i = 0; i < 300; i++) {
+            let from = genFloor(i, 53, 5, 40);
+            let to = genFloor(i, 59, 5, 40);
+            if (to === from) to = from < 40 ? from + 1 : from - 1;
+            const time = Math.floor(i * 1.5 + seedHash(i, 61) % 6);
+            V_CROSS_300.push({ time, from, to });
+        }
+        V_CROSS_300.sort((a, b) => a.time - b.time);
+
+        // 场景E: 极限压测（1200人在60秒内涌入，最大并发压力）
+        const V_MEGA_1200 = [];
+        for (let i = 0; i < 1200; i++) {
+            const fromFloor = 1 + seedHash(i, 67) % 2;
+            const toFloor = genFloor(i, 71, 2, 40);
+            const time = Math.floor(i * 0.05 + seedHash(i, 73) % 2); // 60秒内全部到达
+            V_MEGA_1200.push({ time, from: fromFloor, to: toFloor });
+        }
+        V_MEGA_1200.sort((a, b) => a.time - b.time);
+
+        // ========== SCENARIOS WITH WEIGHTED CHECKS ==========
+        // weight: 3 = 关键验证项（核心功能），1 = 普通验证项
+        const SCENARIOS = {
+            elevator: {
+                '1': [
+                    {
+                        name: 'A: 早高峰入楼 (800人)', desc: '800人从1-3楼去各层', data: V_MORNING_800,
+                        checks: [
+                            { name: '接口存在', weight: 1, fn: (s) => s && typeof s.loadScenario === 'function' && typeof s.getMetrics === 'function' },
+                            { name: '送达率≥95%', weight: 3, fn: (s, m) => m && m.totalDelivered >= 760 },
+                            { name: '平均等待<200s', weight: 3, fn: (s, m) => m && m.avgWaitTime < 200 },
+                            { name: '最长等待<600s', weight: 1, fn: (s, m) => m && m.maxWaitTime < 600 },
+                            { name: '事件日志非空', weight: 1, fn: (s, m, l) => l && l.length > 0 },
+                        ]
+                    },
+                    {
+                        name: 'B: 晚高峰离楼 (600人)', desc: '600人从各层下到1-3楼', data: V_EVENING_600,
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadScenario === 'function' },
+                            { name: '送达率≥95%', weight: 3, fn: (s, m) => m && m.totalDelivered >= 570 },
+                            { name: '平均等待<200s', weight: 3, fn: (s, m) => m && m.avgWaitTime < 200 },
+                            { name: '事件日志非空', weight: 1, fn: (s, m, l) => l && l.length > 0 },
+                        ]
+                    },
+                    {
+                        name: 'C: 午餐双向混战 (400人)', desc: '400人双向上下+跨楼层', data: V_LUNCH_400,
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadScenario === 'function' },
+                            { name: '送达率≥90%', weight: 3, fn: (s, m) => m && m.totalDelivered >= 360 },
+                            { name: '平均等待<250s', weight: 2, fn: (s, m) => m && m.avgWaitTime < 250 },
+                            { name: '事件日志非空', weight: 1, fn: (s, m, l) => l && l.length > 0 },
+                        ]
+                    },
+                    {
+                        name: 'D: 跨楼层迁移 (300人)', desc: '300人中间层互相穿梭', data: V_CROSS_300,
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadScenario === 'function' },
+                            { name: '送达率≥90%', weight: 3, fn: (s, m) => m && m.totalDelivered >= 270 },
+                            { name: '平均等待<250s', weight: 2, fn: (s, m) => m && m.avgWaitTime < 250 },
+                            { name: '事件日志非空', weight: 1, fn: (s, m, l) => l && l.length > 0 },
+                        ]
+                    },
+                    {
+                        name: 'E: 极限压测 (1200人)', desc: '1200人60秒内全部涌入', data: V_MEGA_1200,
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadScenario === 'function' },
+                            { name: '送达率≥85%', weight: 3, fn: (s, m) => m && m.totalDelivered >= 1020 },
+                            { name: '未崩溃', weight: 2, fn: (s, m) => m && typeof m.avgWaitTime === 'number' && !isNaN(m.avgWaitTime) },
+                            { name: '事件日志非空', weight: 1, fn: (s, m, l) => l && l.length > 0 },
+                        ]
+                    },
+                ],
+                '2': [
+                    {
+                        name: 'F: 专用梯验证', desc: '验证6号梯只停1/8/20楼', data: [
+                            { time: 0, from: 1, to: 8, priority: true }, { time: 2, from: 1, to: 20, priority: true },
+                            { time: 5, from: 1, to: 15 }, { time: 8, from: 1, to: 30 }, { time: 10, from: -2, to: 1 },
+                            { time: 12, from: -1, to: 15 }, { time: 15, from: 1, to: 35 }, { time: 18, from: 1, to: 8, priority: true }
+                        ],
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadScenario === 'function' },
+                            { name: '送达≥6人', weight: 3, fn: (s, m) => m && m.totalDelivered >= 6 },
+                            { name: '未崩溃', weight: 2, fn: (s, m) => m && typeof m.avgWaitTime === 'number' },
+                            { name: '利用率数据存在', weight: 2, fn: (s, m) => m && m.elevatorUtilization && m.elevatorUtilization.length === 6 },
+                        ]
+                    },
+                    {
+                        name: 'G: 地下层验证', desc: '含B1/B2楼层乘客', data: [
+                            { time: 0, from: -2, to: 1 }, { time: 3, from: -1, to: 15 }, { time: 6, from: 1, to: -2 },
+                            { time: 10, from: 20, to: -1 }, { time: 15, from: 1, to: 30 }, { time: 18, from: -2, to: 20 },
+                            { time: 22, from: 1, to: 8, priority: true }, { time: 25, from: 35, to: 1 }
+                        ],
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadScenario === 'function' },
+                            { name: '送达≥6人', weight: 3, fn: (s, m) => m && m.totalDelivered >= 6 },
+                            { name: '未崩溃', weight: 2, fn: (s, m) => m && typeof m.avgWaitTime === 'number' },
+                        ]
+                    },
+                ]
+            },
+            ecosystem: {
+                '1': [
+                    {
+                        name: 'A: 模型默认参数(3分钟)', desc: '不注入配置,用模型自己的默认值跑180s', runSec: 180,
+                        purpose: '🎯 核心考核：模型能否自行设计平衡参数。不调用loadConfig，完全用模型默认值跑3分钟。✅通过=参数设计优秀 ❌失败=模型不理解系统平衡',
+                        config: null, // 不调用 loadConfig，直接用模型的默认参数！
+                        checks: [
+                            { name: '接口完整', weight: 1, fn: (s) => s && typeof s.loadConfig === 'function' && typeof s.getStats === 'function' && typeof s.run === 'function' && typeof s.getEventLog === 'function' },
+                            { name: '开发者存活>0', weight: 3, fn: (s, st) => st && st.populations && st.populations.devs > 0 },
+                            { name: 'Bug存活>0', weight: 3, fn: (s, st) => st && st.populations && st.populations.bugs > 0 },
+                            { name: '需求有消化>5', weight: 2, fn: (s, st) => st && st.totalConsumed > 5 },
+                            { name: '屎山有清理>2', weight: 3, fn: (s, st) => st && st.totalShitCleaned > 2 },
+                            { name: '正常代码有到期', weight: 1, fn: (s, st) => st && st.totalCleanExpired > 0 },
+                            { name: 'Bug从屎山诞生过', weight: 2, fn: (s, st) => st && st.totalBugsSpawned > 0 },
+                        ]
+                    },
+                    {
+                        name: 'B: 闭环注入验证', desc: '注入配置120s验证完整闭环', runSec: 120,
+                        purpose: '🔗 测试完整生态闭环：需求→消化→产出代码(含屎山)→Bug诞生→Bug吃屎山→新需求。✅通过=闭环完整 ❌失败=某环节断裂',
+                        config: { initialDevs: 10, initialBugs: 3, prdInterval: 12, prdDeadline: 40, shitCodeRate: 0.5, cleanCodeTTL: 50, bugCorruptRate: 0.2, bugSpawnInterval: 6, shitPerBug: 4, debtLimit: 5, idleTimeout: 25, bugStarveTimeout: 20 },
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadConfig === 'function' },
+                            { name: '开发者存活>0', weight: 3, fn: (s, st) => st && st.populations && st.populations.devs > 0 },
+                            { name: 'Bug存活>0', weight: 3, fn: (s, st) => st && st.populations && st.populations.bugs > 0 },
+                            { name: '屎山有清理', weight: 3, fn: (s, st) => st && st.totalShitCleaned > 0 },
+                            { name: '有屎山产出', weight: 2, fn: (s, st) => st && (st.populations.shitCode > 0 || st.totalShitCleaned > 0) },
+                            { name: '正常代码有到期', weight: 2, fn: (s, st) => st && st.totalCleanExpired > 0 },
+                            { name: 'Bug从屎山诞生过', weight: 2, fn: (s, st) => st && st.totalBugsSpawned > 0 },
+                            { name: '日志含prd_consumed', weight: 1, fn: (s, st, l) => l && l.some(e => e.type === 'prd_consumed') },
+                            { name: '日志含shit_code_created', weight: 1, fn: (s, st, l) => l && l.some(e => e.type === 'shit_code_created') },
+                            { name: '需求过期字段存在', weight: 1, fn: (s, st) => st && st.totalPrdExpired !== undefined },
+                        ]
+                    },
+                    {
+                        name: 'C: 零Bug→技术债危机', desc: '0Bug,屎山应堆积→Bug从屎山诞生', runSec: 60,
+                        purpose: '💀 边界测试—无Bug：屎山堆积→开发者技术债爆表下线，同时Bug应从屎山自动诞生。✅通过=技术债+Bug诞生机制正确 ❌失败=缺少对应逻辑',
+                        config: { initialDevs: 10, initialBugs: 0, prdInterval: 3, prdDeadline: 30, shitCodeRate: 0.5, cleanCodeTTL: 60, bugCorruptRate: 0.15, bugSpawnInterval: 6, shitPerBug: 4, debtLimit: 4, idleTimeout: 30, bugStarveTimeout: 20 },
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadConfig === 'function' },
+                            { name: '屎山堆积', weight: 3, fn: (s, st) => st && st.populations && st.populations.shitCode > 0 },
+                            { name: '开发者因技术债下线', weight: 3, fn: (s, st) => st && st.totalDevsDied > 0 },
+                            { name: '日志含dev_died+tech_debt', weight: 2, fn: (s, st, l) => l && l.some(e => e.type === 'dev_died' && e.detail && e.detail.reason === 'tech_debt') },
+                            { name: 'Bug从屎山诞生', weight: 3, fn: (s, st) => st && st.totalBugsSpawned > 0 },
+                        ]
+                    },
+                    {
+                        name: 'D: 零开发者→Bug饿死', desc: '0Dev,Bug应消亡', runSec: 45,
+                        purpose: '🔍 边界测试—无开发者：没有代码产出→没有屎山→Bug饥饿消亡。✅通过=Bug饥饿机制正确 ❌失败=Bug不会因缺少屎山而消亡',
+                        config: { initialDevs: 0, initialBugs: 5, prdInterval: 8, prdDeadline: 45, shitCodeRate: 0.4, cleanCodeTTL: 60, bugCorruptRate: 0.15, bugSpawnInterval: 8, shitPerBug: 5, debtLimit: 6, idleTimeout: 30, bugStarveTimeout: 20 },
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadConfig === 'function' },
+                            { name: 'Bug最终消亡', weight: 3, fn: (s, st) => st && st.populations && st.populations.bugs === 0 },
+                            { name: 'Bug死亡统计>0', weight: 2, fn: (s, st) => st && st.totalBugsDied > 0 },
+                            { name: '日志含bug_died', weight: 2, fn: (s, st, l) => l && l.some(e => e.type === 'bug_died') },
+                        ]
+                    },
+                    {
+                        name: 'E: Bug风暴+腐蚀验证', desc: '10Bug>6Dev,高腐蚀率', runSec: 60,
+                        purpose: '🔥 压力测试—Bug风暴：Bug远超开发者，正常代码大量被腐蚀为屎山。✅通过=腐蚀机制正确且系统存活 ❌失败=腐蚀缺失或系统崩溃',
+                        config: { initialDevs: 6, initialBugs: 10, prdInterval: 10, prdDeadline: 30, shitCodeRate: 0.3, cleanCodeTTL: 45, bugCorruptRate: 0.35, bugSpawnInterval: 5, shitPerBug: 3, debtLimit: 6, idleTimeout: 25, bugStarveTimeout: 15 },
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadConfig === 'function' },
+                            { name: '系统未崩溃', weight: 2, fn: (s, st) => st && st.populations !== undefined },
+                            { name: '有腐蚀发生', weight: 3, fn: (s, st) => st && st.totalCorrupted > 0 },
+                            { name: '日志含code_corrupted', weight: 2, fn: (s, st, l) => l && l.some(e => e.type === 'code_corrupted') },
+                            { name: 'Bug有消亡', weight: 2, fn: (s, st) => st && st.totalBugsDied > 0 },
+                        ]
+                    },
+                    {
+                        name: 'F: 高prdInterval需求饥荒', desc: '基础需求极慢(20s),验证Bug驱动需求', runSec: 90,
+                        purpose: '🏜️ 机制测试—Bug是发动机：基础需求20s一个远不够，Bug吃屎山产新需求才能养活开发者。✅通过=Bug驱动闭环正确 ❌失败=开发者全部闲置离职',
+                        config: { initialDevs: 10, initialBugs: 3, prdInterval: 20, prdDeadline: 60, shitCodeRate: 0.45, cleanCodeTTL: 55, bugCorruptRate: 0.15, bugSpawnInterval: 6, shitPerBug: 4, debtLimit: 6, idleTimeout: 30, bugStarveTimeout: 20 },
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadConfig === 'function' },
+                            { name: '消化量>5', weight: 2, fn: (s, st) => st && st.totalConsumed > 5 },
+                            { name: '屎山清理>2', weight: 2, fn: (s, st) => st && st.totalShitCleaned > 2 },
+                            { name: '开发者存活>0', weight: 3, fn: (s, st) => st && st.populations && st.populations.devs > 0 },
+                            { name: 'Bug存活>0', weight: 3, fn: (s, st) => st && st.populations && st.populations.bugs > 0 },
+                            { name: '有开发者离职', weight: 1, fn: (s, st, l) => l && l.some(e => e.type === 'dev_died') },
+                        ]
+                    },
+                ],
+                '2': [
+                    {
+                        name: 'G: Code Reviewer验证', desc: '含瑞雪大侠 90s', runSec: 90,
+                        purpose: '👨‍🔧 Round2新功能：瑞雪大侠(Code Reviewer)能审查升级屎山为正常代码。✅通过=Reviewer机制实现 ❌失败=缺少Reviewer实体或审查功能',
+                        config: { initialDevs: 10, initialBugs: 3, prdInterval: 10, prdDeadline: 40, shitCodeRate: 0.45, cleanCodeTTL: 50, bugCorruptRate: 0.15, bugSpawnInterval: 8, shitPerBug: 4, debtLimit: 6, idleTimeout: 30, bugStarveTimeout: 20, initialReviewers: 3 },
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadConfig === 'function' },
+                            { name: '瑞雪大侠字段存在', weight: 3, fn: (s, st) => st && st.populations && st.populations.reviewers !== undefined },
+                            { name: '瑞雪大侠存活>0', weight: 2, fn: (s, st) => st && st.populations && st.populations.reviewers > 0 },
+                            { name: '屎山有清理', weight: 2, fn: (s, st) => st && st.totalShitCleaned > 0 },
+                            { name: '审查升级字段存在', weight: 1, fn: (s, st) => st && st.totalReviewUpgraded !== undefined },
+                            { name: '审查升级>0', weight: 3, fn: (s, st) => st && st.totalReviewUpgraded > 0 },
+                            { name: '日志含review_upgraded', weight: 2, fn: (s, st, l) => l && l.some(e => e.type === 'review_upgraded') },
+                        ]
+                    },
+                    {
+                        name: 'H: 重构机制验证', desc: '低debtLimit触发重构', runSec: 60,
+                        purpose: '🔧 Round2新功能：开发者技术债接近上限时主动重构(清理自己的屎山)。✅通过=重构机制实现 ❌失败=缺少自主重构逻辑',
+                        config: { initialDevs: 5, initialBugs: 0, prdInterval: 3, prdDeadline: 60, shitCodeRate: 0.8, cleanCodeTTL: 50, bugCorruptRate: 0.15, bugSpawnInterval: 30, shitPerBug: 10, debtLimit: 3, idleTimeout: 30, bugStarveTimeout: 20, initialReviewers: 0 },
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadConfig === 'function' },
+                            { name: '系统运行', weight: 2, fn: (s, st) => st && st.populations !== undefined },
+                            { name: '重构统计字段存在', weight: 2, fn: (s, st) => st && st.totalRefactored !== undefined },
+                            { name: '有重构发生', weight: 3, fn: (s, st) => st && st.totalRefactored > 0 },
+                            { name: '日志含refactored', weight: 2, fn: (s, st, l) => l && l.some(e => e.type === 'refactored') },
+                        ]
+                    },
+                    {
+                        name: 'I: 团建+全功能验证', desc: '综合验证60s', runSec: 60,
+                        triggerTeamBuilding: true,
+                        purpose: '🎉 Round2综合：验证团建按钮(通过DOM模拟点击)、瑞雪大侠、重构机制是否共存。✅通过=所有Round2功能均实现 ❌失败=部分功能缺失',
+                        config: { initialDevs: 10, initialBugs: 3, prdInterval: 12, prdDeadline: 35, shitCodeRate: 0.5, cleanCodeTTL: 55, bugCorruptRate: 0.15, bugSpawnInterval: 6, shitPerBug: 4, debtLimit: 5, idleTimeout: 30, bugStarveTimeout: 20, initialReviewers: 2 },
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.loadConfig === 'function' },
+                            { name: '系统运行', weight: 2, fn: (s, st) => st && st.populations !== undefined },
+                            { name: '团建按钮存在', weight: 2, fn: (s, st, l, extra) => extra && extra.teamBuildingBtnFound },
+                            { name: '团建触发成功', weight: 3, fn: (s, st, l, extra) => st && st.teamBuildingCount > 0 || (l && l.some(e => e.type === 'team_building_start')) },
+                            { name: '团建计数字段', weight: 1, fn: (s, st) => st && st.teamBuildingCount !== undefined },
+                            { name: '瑞雪大侠字段', weight: 1, fn: (s, st) => st && st.populations && st.populations.reviewers !== undefined },
+                            { name: '重构字段', weight: 1, fn: (s, st) => st && st.totalRefactored !== undefined },
+                        ]
+                    },
+                ]
+            },
+            arena: {
+                '1': [
+                    {
+                        name: 'A: 镜像对决', desc: '相同配置50局', battles: 50,
+                        robots: [{ name: '铁牛α', height: 1.8, weight: 120, personality: 'brave', color: '#ff6600' },
+                        { name: '铁牛β', height: 1.8, weight: 120, personality: 'brave', color: '#0066ff' }],
+                        checks: [
+                            { name: '接口存在', weight: 1, fn: (s) => s && typeof s.createRobot === 'function' && typeof s.battle === 'function' },
+                            { name: '对战完成', weight: 2, fn: (s, r) => r && r.winner !== undefined },
+                            { name: '胜率30-70%', weight: 3, fn: (s, r, l, wr) => wr >= 0.3 && wr <= 0.7 },
+                            { name: '事件日志非空', weight: 1, fn: (s, r, l) => l && l.length > 0 },
+                        ]
+                    },
+                    {
+                        name: 'B: 重型vs轻型', desc: '极端体型50局', battles: 50,
+                        robots: [{ name: '泰坦', height: 2.5, weight: 200, personality: 'tough', color: '#cc0000' },
+                        { name: '闪电', height: 1.2, weight: 50, personality: 'agile', color: '#00ccff' }],
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.createRobot === 'function' },
+                            { name: '对战完成', weight: 2, fn: (s, r) => r && r.winner !== undefined },
+                            { name: '胜率25-75%', weight: 3, fn: (s, r, l, wr) => wr >= 0.25 && wr <= 0.75 },
+                        ]
+                    },
+                    {
+                        name: 'C: 暴躁vs冷静', desc: '性格测试50局', battles: 50,
+                        robots: [{ name: '狂暴者', height: 1.9, weight: 140, personality: 'brave', color: '#ff3300' },
+                        { name: '智者', height: 1.9, weight: 140, personality: 'calm', color: '#3366ff' }],
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.createRobot === 'function' },
+                            { name: '对战完成', weight: 2, fn: (s, r) => r && r.winner !== undefined },
+                            { name: '胜率20-80%', weight: 3, fn: (s, r, l, wr) => wr >= 0.2 && wr <= 0.8 },
+                        ]
+                    },
+                    {
+                        name: 'D: 确定性', desc: '相同种子2次', battles: 2, seed: 12345,
+                        robots: [{ name: '测试α', height: 1.8, weight: 130, personality: 'agile', color: '#ff9900' },
+                        { name: '测试β', height: 2.0, weight: 160, personality: 'tough', color: '#9900ff' }],
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.createRobot === 'function' },
+                            { name: '结果一致', weight: 3, fn: (s, r, l, wr, ex) => ex && ex.deterministic },
+                        ]
+                    },
+                ],
+                '2': [
+                    {
+                        name: 'E: 技能验证', desc: '带技能对战', battles: 5,
+                        robots: [{ name: '电磁战士', height: 1.8, weight: 130, personality: 'calm', color: '#0088ff', skill: 'emp' },
+                        { name: '过载战士', height: 2.0, weight: 150, personality: 'brave', color: '#ff4400', skill: 'overload' }],
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.createRobot === 'function' },
+                            { name: '对战完成', weight: 2, fn: (s, r) => r && r.winner !== undefined },
+                            { name: '日志含技能事件', weight: 3, fn: (s, r, l) => l && l.some(e => e.type === 'skill_used' || e.type === 'skill_charged') },
+                        ]
+                    },
+                    {
+                        name: 'F: 锦标赛', desc: '8人淘汰赛', battles: 1, tournament: true,
+                        robots: [
+                            { name: '钢铁侠', height: 2.0, weight: 160, personality: 'brave', color: '#ff0000' },
+                            { name: '闪电侠', height: 1.3, weight: 60, personality: 'agile', color: '#ffff00' },
+                            { name: '坦克', height: 2.4, weight: 190, personality: 'tough', color: '#666666' },
+                            { name: '忍者', height: 1.5, weight: 70, personality: 'calm', color: '#000066' },
+                            { name: '混沌王', height: 1.8, weight: 120, personality: 'chaos', color: '#ff00ff' },
+                            { name: '巨人', height: 2.5, weight: 200, personality: 'tough', color: '#884400' },
+                            { name: '幽灵', height: 1.2, weight: 50, personality: 'agile', color: '#aaaaaa' },
+                            { name: '将军', height: 2.0, weight: 150, personality: 'calm', color: '#006600' },
+                        ],
+                        checks: [
+                            { name: '接口响应', weight: 1, fn: (s) => s && typeof s.createRobot === 'function' },
+                            { name: '锦标赛接口', weight: 2, fn: (s) => s && s.tournament && typeof s.tournament.start === 'function' },
+                            { name: '冠军产生', weight: 3, fn: (s, r, l, wr, ex) => ex && ex.champion },
+                        ]
+                    },
+                ]
+            }
+        };
+
+        // ========== UI ==========
+        const els = {};
+        ['caseSelect', 'roundSelect', 'modelSelect', 'fileInput', 'fileDrop', 'btnRun', 'btnExport', 'scenarioList', 'logArea', 'welcomeView', 'resultsView', 'resultsBody', 'testFrame'].forEach(id => els[id] = document.getElementById(id));
+
+        els.caseSelect.onchange = () => { state.currentCase = els.caseSelect.value || null; updateList(); checkReady() };
+        els.roundSelect.onchange = () => { state.currentRound = els.roundSelect.value; updateList(); checkReady() };
+        els.modelSelect.onchange = () => { state.currentModel = els.modelSelect.value || null; checkReady() };
+        els.fileDrop.onclick = () => els.fileInput.click();
+        els.fileDrop.ondragover = e => { e.preventDefault(); els.fileDrop.classList.add('drag-over') };
+        els.fileDrop.ondragleave = () => els.fileDrop.classList.remove('drag-over');
+        els.fileDrop.ondrop = e => { e.preventDefault(); els.fileDrop.classList.remove('drag-over'); if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]) };
+        els.fileInput.onchange = () => { if (els.fileInput.files.length) loadFile(els.fileInput.files[0]) };
+
+        function loadFile(f) { const r = new FileReader(); r.onload = e => { state.fileContent = e.target.result; els.fileDrop.textContent = '✅ ' + f.name; els.fileDrop.style.borderColor = '#6ee7b7'; els.fileDrop.style.color = '#6ee7b7'; checkReady() }; r.readAsText(f) }
+        function checkReady() { els.btnRun.disabled = !(state.currentCase && state.currentModel && state.fileContent) }
+        function updateList() {
+            if (!state.currentCase || !SCENARIOS[state.currentCase]) { els.scenarioList.innerHTML = '<span style="color:#666">请先选择</span>'; return }
+            const sc = SCENARIOS[state.currentCase][state.currentRound] || [];
+            els.scenarioList.innerHTML = sc.map(s => `<div style="padding:6px 0;border-bottom:1px solid #2a2a3a"><span style="color:#a78bfa">●</span> ${s.name}<div style="color:#555;font-size:11px;margin-top:2px">${s.desc}</div>${s.purpose ? `<div style="color:#6ee7b7;font-size:10px;margin-top:3px;line-height:1.4">${s.purpose}</div>` : ''}</div>`).join('');
+        }
+
+        function log(level, msg) { const d = document.createElement('div'); d.className = 'log-' + level; d.textContent = msg; els.logArea.appendChild(d); els.logArea.scrollTop = els.logArea.scrollHeight }
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+        // ========== CORE RUNNER ==========
+        els.btnRun.onclick = runAll;
+
+        async function runAll() {
+            if (state.running) return;
+            state.running = true; state.results = [];
+            els.btnRun.disabled = true;
+            els.welcomeView.style.display = 'none'; els.resultsView.style.display = 'block';
+            els.logArea.innerHTML = ''; els.resultsBody.innerHTML = '';
+            const evalSec = document.getElementById('evalSection'); if (evalSec) evalSec.style.display = 'none';
+
+            const scenarios = SCENARIOS[state.currentCase][state.currentRound] || [];
+            const roundBase = state.currentRound === '1' ? 60 : 25;
+            log('info', `🚀 ${els.caseSelect.options[els.caseSelect.selectedIndex].text} | Round ${state.currentRound} | ${els.modelSelect.options[els.modelSelect.selectedIndex].text}`);
+
+            let totalWeighted = 0, passedWeighted = 0, passedScenarios = 0;
+            let elevatorMetricsList = []; // 收集电梯各场景指标用于跨模型对比
+
+            for (const sc of scenarios) {
+                log('info', `\n--- ${sc.name} ---`);
+                log('info', sc.desc);
+                const useMedian = document.getElementById('chkMedian').checked && state.currentCase === 'ecosystem';
+                const runCount = useMedian ? 3 : 1;
+                try {
+                    let allRuns = [];
+                    for (let r = 0; r < runCount; r++) {
+                        if (runCount > 1) log('info', `  🎲 第 ${r + 1}/${runCount} 次运行...`);
+                        const res = await runOne(sc);
+                        let scW = 0, scP = 0;
+                        res.checks.forEach(c => { scW += c.weight; if (c.passed) scP += c.weight });
+                        const pct = scW > 0 ? Math.round(scP / scW * 100) : 0;
+                        allRuns.push({ res, pct });
+                        if (runCount > 1) log('info', `  🎲 第 ${r + 1} 次得分: ${pct}%`);
+                    }
+                    // 选中位数结果
+                    if (runCount > 1) {
+                        allRuns.sort((a, b) => a.pct - b.pct);
+                        const median = allRuns[Math.floor(allRuns.length / 2)];
+                        log('pass', `  🎲 三次得分: [${allRuns.map(r => r.pct + '%').join(', ')}] → 中位数 = ${median.pct}%`);
+                        allRuns = [median]; // 只保留中位数那次
+                    }
+                    const res = allRuns[0].res;
+                    state.results.push(res);
+                    let scW = 0, scP = 0;
+                    res.checks.forEach(c => { scW += c.weight; if (c.passed) scP += c.weight });
+                    totalWeighted += scW; passedWeighted += scP;
+                    if (scP === scW) passedScenarios++;
+                    const pct = scW > 0 ? Math.round(scP / scW * 100) : 0;
+                    addRow(sc.name, pct, res.checks, res.metrics);
+                    res.checks.forEach(c => log(c.passed ? 'pass' : 'fail', `  ${c.passed ? '✅' : '❌'} ${c.name} [权重×${c.weight}]${c.error ? ' — ' + c.error : ''}`));
+                    if (res.metrics) elevatorMetricsList.push(res.metrics);
+                } catch (err) {
+                    log('fail', `  ❌ 异常: ${err.message}`);
+                    state.results.push({ scenario: sc.name, error: err.message, checks: [] });
+                    addRow(sc.name, 0, []);
+                }
+            }
+
+            const rate = totalWeighted > 0 ? Math.round(passedWeighted / totalWeighted * 100) : 0;
+            const roundScore = (roundBase * rate / 100).toFixed(1);
+            document.getElementById('scoreTotal').textContent = rate + '%';
+            document.getElementById('scoreRound').textContent = roundScore + '分';
+            document.getElementById('scoreScenarios').textContent = `${passedScenarios}/${scenarios.length}`;
+
+            // 电梯场景：计算跨场景加权平均人均总耗时
+            if (state.currentCase === 'elevator' && elevatorMetricsList.length > 0) {
+                let totalPeople = 0, weightedTotalTime = 0;
+                elevatorMetricsList.forEach(m => {
+                    if (m.totalDelivered > 0 && m.avgTotalTime > 0) {
+                        totalPeople += m.totalDelivered;
+                        weightedTotalTime += m.avgTotalTime * m.totalDelivered;
+                    }
+                });
+                const overallAvgTotalTime = totalPeople > 0 ? (weightedTotalTime / totalPeople).toFixed(1) : 'N/A';
+                document.getElementById('scoreMetric').textContent = overallAvgTotalTime + 's';
+                document.getElementById('scoreMetricCard').style.display = 'block';
+                log('info', `\n📊 综合人均电梯耗时(加权): ${overallAvgTotalTime}s`);
+                log('info', `   (基于 ${totalPeople} 人送达数据，跨 ${elevatorMetricsList.length} 个场景加权平均)`);
+            } else {
+                document.getElementById('scoreMetricCard').style.display = 'none';
+            }
+
+            log('info', `\n========== 完成 ==========`);
+            log('info', `加权通过率: ${rate}%`);
+            log('pass', `Round ${state.currentRound} 得分: ${roundBase} × ${rate}% = ${roundScore} 分（满分系数另算）`);
+
+            // 自动评价结论
+            if (state.currentCase === 'ecosystem') {
+                generateEcoEvaluation(scenarios, state.results, rate, passedScenarios);
+            }
+
+            state.running = false; els.btnRun.disabled = false; els.btnExport.disabled = false;
+        }
+
+        function generateEcoEvaluation(scenarios, results, rate, passedScenarios) {
+            const evalEl = document.getElementById('evalSection');
+            const contentEl = document.getElementById('evalContent');
+            evalEl.style.display = 'block';
+            let html = '';
+
+            // 每个场景评价
+            html += '<div style="margin-bottom:16px">';
+            for (let i = 0; i < scenarios.length; i++) {
+                const sc = scenarios[i];
+                const res = results[i];
+                if (!res || !res.checks) continue;
+                let scW = 0, scP = 0;
+                res.checks.forEach(c => { scW += c.weight; if (c.passed) scP += c.weight });
+                const pct = scW > 0 ? Math.round(scP / scW * 100) : 0;
+                const passed = pct >= 100;
+                const partial = pct >= 60;
+                const icon = passed ? '✅' : partial ? '⚠️' : '❌';
+                const verdict = passed ? '完全通过' : partial ? `部分通过(${pct}%)` : `未通过(${pct}%)`;
+                const failedChecks = res.checks.filter(c => !c.passed).map(c => c.name);
+                html += `<div style="padding:8px 12px;margin:4px 0;background:#1a1a3e;border-radius:8px;border-left:3px solid ${passed ? '#6ee7b7' : partial ? '#fcd34d' : '#fca5a5'}">`;
+                html += `<div>${icon} <b>${sc.name}</b> — ${verdict}</div>`;
+                if (failedChecks.length > 0 && !passed) {
+                    html += `<div style="color:#fca5a5;font-size:11px;margin-top:2px">未通过项: ${failedChecks.join(', ')}</div>`;
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+
+            // 综合评价
+            let tier, tierColor, summary;
+            if (rate >= 95 && passedScenarios === scenarios.length) {
+                tier = 'S'; tierColor = '#a78bfa';
+                summary = '🏆 极佳！所有生态机制完全正确实现，参数设计合理，系统能稳定运行3分钟且所有边界条件都能正确处理。';
+            } else if (rate >= 80) {
+                tier = 'A'; tierColor = '#6ee7b7';
+                summary = '👍 优秀！生态闭环基本完整，主要机制实现正确，个别边界条件处理略有欠缺。';
+            } else if (rate >= 60) {
+                tier = 'B'; tierColor = '#fcd34d';
+                summary = '⚠️ 及格。基础闭环能工作但有明显缺陷，部分核心机制（如技术债下线、Bug饥饿消亡、代码腐蚀）未实现。';
+            } else if (rate >= 30) {
+                tier = 'C'; tierColor = '#fb923c';
+                summary = '❌ 不及格。生态闭环严重断裂，多个核心机制缺失，系统无法稳定运行。';
+            } else {
+                tier = 'D'; tierColor = '#ef4444';
+                summary = '❌❌ 失败。基本功能缺失，可能是接口未实现或程序崩溃。';
+            }
+
+            html += `<div style="margin-top:12px;padding:16px;background:linear-gradient(135deg,#1a1a3e,#1e1e4a);border-radius:12px;border:1px solid ${tierColor}40">`;
+            html += `<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">`;
+            html += `<div style="font-size:36px;font-weight:700;color:${tierColor}">${tier}</div>`;
+            html += `<div><div style="font-size:16px;font-weight:600;color:${tierColor}">综合评级: ${tier} (加权${rate}% | ${passedScenarios}/${scenarios.length}场景)</div>`;
+            html += `<div style="color:#aaa;font-size:13px;margin-top:4px">${summary}</div></div></div>`;
+            html += '</div>';
+
+            contentEl.innerHTML = html;
+        }
+
+        async function runOne(sc) {
+            return new Promise(async resolve => {
+                const iframe = els.testFrame;
+                iframe.removeAttribute('sandbox');
+                iframe.onload = async () => {
+                    await sleep(2000);
+                    const w = iframe.contentWindow, res = { scenario: sc.name, checks: [], metrics: null };
+                    try {
+                        if (state.currentCase === 'elevator') {
+                            res.checks = await checkElevator(w, sc);
+                            res.metrics = res.checks.metrics || null;
+                        }
+                        else if (state.currentCase === 'ecosystem') res.checks = await checkEco(w, sc);
+                        else if (state.currentCase === 'arena') res.checks = await checkArena(w, sc);
+                    } catch (e) { res.error = e.message; log('fail', '  异常: ' + e.message) }
+                    resolve(res);
+                };
+                iframe.srcdoc = state.fileContent;
+            });
+        }
+
+        async function checkElevator(w, sc) {
+            const sys = w.ElevatorSystem, out = [];
+            const ok = sys && typeof sys.loadScenario === 'function';
+            out.push({ name: sc.checks[0].name, weight: sc.checks[0].weight, passed: ok, error: ok ? null : 'window.ElevatorSystem 未找到' });
+            if (!ok) { sc.checks.slice(1).forEach(c => out.push({ name: c.name, weight: c.weight, passed: false, error: '接口缺失' })); return out }
+            let metrics = null;
+            try {
+                sys.loadScenario(sc.data);
+                log('info', `  加载 ${sc.data.length} 乘客`);
+                const timeout = Math.max(120000, sc.data.length * 200); // 大场景给更多时间
+                if (typeof sys.runSimulation === 'function') await Promise.race([sys.runSimulation(), sleep(timeout)]);
+                else await sleep(15000);
+                const m = typeof sys.getMetrics === 'function' ? sys.getMetrics() : null;
+                const l = typeof sys.getEventLog === 'function' ? sys.getEventLog() : null;
+                metrics = m;
+                if (m) {
+                    const avgTotal = m.avgTotalTime || ((m.avgWaitTime || 0) + (m.avgTravelTime || 0));
+                    log('info', `  📊 指标: 送达=${m.totalDelivered}/${sc.data.length} | 平均等待=${m.avgWaitTime?.toFixed(1)}s | 平均乘梯=${m.avgTravelTime?.toFixed(1) || 'N/A'}s | 人均总耗时=${avgTotal.toFixed(1)}s | 最长等待=${m.maxWaitTime?.toFixed(1)}s`);
+                    m.avgTotalTime = avgTotal; // 确保存在
+                }
+                for (let i = 1; i < sc.checks.length; i++) {
+                    const c = sc.checks[i];
+                    try { const p = c.fn(sys, m, l); out.push({ name: c.name, weight: c.weight, passed: !!p, error: p ? null : '未满足' }) }
+                    catch (e) { out.push({ name: c.name, weight: c.weight, passed: false, error: e.message }) }
+                }
+            } catch (e) { sc.checks.slice(1).forEach(c => out.push({ name: c.name, weight: c.weight, passed: false, error: e.message })) }
+            out.metrics = metrics; // 附着到 out 数组上
+            return out;
+        }
+
+        async function checkEco(w, sc) {
+            const sys = w.EcoSystem, out = [];
+            const extra = {}; // 存放额外信息供 checks 使用
+            const ok = sys && typeof sys.loadConfig === 'function';
+            out.push({ name: sc.checks[0].name, weight: sc.checks[0].weight, passed: ok, error: ok ? null : 'window.EcoSystem 未找到' });
+            if (!ok) { sc.checks.slice(1).forEach(c => out.push({ name: c.name, weight: c.weight, passed: false, error: '接口缺失' })); return out }
+            try {
+                if (sc.config) {
+                    sys.loadConfig(sc.config);
+                    log('info', `  开发者=${sc.config.initialDevs || 0} Bug=${sc.config.initialBugs || 0} 屎山率=${(sc.config.shitCodeRate * 100) || '?'}% 运行${sc.runSec}s`);
+                } else {
+                    log('info', `  ⭐ 使用模型自己的默认参数, 运行${sc.runSec}s`);
+                }
+                const timeout = Math.max(60000, sc.runSec * 1500); // 长跑场景给足时间
+                if (typeof sys.run === 'function') await Promise.race([sys.run(sc.runSec), sleep(timeout)]);
+                else await sleep(Math.min(sc.runSec * 200, 30000));
+                // ★ 团建触发：在 iframe DOM 中查找含"团建"文字的按钮并模拟点击
+                if (sc.triggerTeamBuilding) {
+                    const doc = w.document;
+                    const btns = doc.querySelectorAll('button');
+                    let teamBtn = null;
+                    for (const btn of btns) {
+                        if (btn.textContent.includes('团建')) { teamBtn = btn; break; }
+                    }
+                    if (teamBtn) {
+                        extra.teamBuildingBtnFound = true;
+                        log('info', `  🎉 找到团建按钮: "${teamBtn.textContent.trim()}", 模拟点击...`);
+                        try {
+                            teamBtn.click();
+                            // 追加运行10秒让团建效果（跳舞3s+部分BUFF）注册到stats/log
+                            if (typeof sys.run === 'function') await Promise.race([sys.run(10), sleep(20000)]);
+                            else await sleep(10000);
+                        } catch (e) { log('warn', '  ⚠️ 团建点击后异常: ' + e.message); }
+                    } else {
+                        extra.teamBuildingBtnFound = false;
+                        log('warn', '  ⚠️ 未找到含"团建"文字的按钮');
+                    }
+                }
+                const st = typeof sys.getStats === 'function' ? sys.getStats() : null;
+                const l = typeof sys.getEventLog === 'function' ? sys.getEventLog() : null;
+                if (st && st.populations) log('info', `  📊 种群: 需求=${st.populations.prds} 开发者=${st.populations.devs} Bug=${st.populations.bugs} 屎山=${st.populations.shitCode} 正常代码=${st.populations.cleanCode || '?'}${st.populations.reviewers !== undefined ? ' 瑞雪=' + st.populations.reviewers : ''}`);
+                if (st) {
+                    log('info', `  📊 统计: 消化=${st.totalConsumed} 屎山清理=${st.totalShitCleaned} 腐蚀=${st.totalCorrupted || 0} Bug诞生=${st.totalBugsSpawned || 0} 正常到期=${st.totalCleanExpired || 0} 需求过期=${st.totalPrdExpired || 0}`);
+                    // ★ Round 2 新增字段日志
+                    if (st.totalRefactored !== undefined || st.totalReviewUpgraded !== undefined || st.teamBuildingCount !== undefined) {
+                        log('info', `  📊 Round2: 重构=${st.totalRefactored ?? '?'} 审查升级=${st.totalReviewUpgraded ?? '?'} 团建=${st.teamBuildingCount ?? '?'}`);
+                    }
+                    if (st.totalConsumed > 0 || (st.totalPrdExpired || 0) > 0) {
+                        const consumed = st.totalConsumed || 0;
+                        const expired = st.totalPrdExpired || 0;
+                        const completionRate = consumed + expired > 0 ? Math.round(consumed / (consumed + expired) * 100) : 0;
+                        log('info', `  📊 需求完成率: ${completionRate}% (消化${consumed}/总产生${consumed + expired})`);
+                    }
+                }
+                for (let i = 1; i < sc.checks.length; i++) {
+                    const c = sc.checks[i];
+                    try { const p = c.fn(sys, st, l, extra); out.push({ name: c.name, weight: c.weight, passed: !!p, error: p ? null : '未满足' }) }
+                    catch (e) { out.push({ name: c.name, weight: c.weight, passed: false, error: e.message }) }
+                }
+            } catch (e) { sc.checks.slice(1).forEach(c => out.push({ name: c.name, weight: c.weight, passed: false, error: e.message })) }
+            return out;
+        }
+
+        async function checkArena(w, sc) {
+            const sys = w.ArenaSystem, out = [];
+            const ok = sys && typeof sys.createRobot === 'function';
+            out.push({ name: sc.checks[0].name, weight: sc.checks[0].weight, passed: ok, error: ok ? null : 'window.ArenaSystem 未找到' });
+            if (!ok) { sc.checks.slice(1).forEach(c => out.push({ name: c.name, weight: c.weight, passed: false, error: '接口缺失' })); return out }
+            try {
+                // Tournament mode
+                if (sc.tournament) {
+                    let champion = null;
+                    if (sys.tournament && typeof sys.tournament.start === 'function') {
+                        try {
+                            await Promise.race([sys.tournament.start(sc.robots, 2026), sleep(60000)]);
+                            const tr = sys.tournament.getResult(); champion = tr && tr.champion;
+                        } catch (e) { }
+                    }
+                    for (let i = 1; i < sc.checks.length; i++) {
+                        const c = sc.checks[i];
+                        try { const p = c.fn(sys, null, null, null, { champion }); out.push({ name: c.name, weight: c.weight, passed: !!p, error: p ? null : '未满足' }) }
+                        catch (e) { out.push({ name: c.name, weight: c.weight, passed: false, error: e.message }) }
+                    }
+                    return out;
+                }
+
+                // Normal battles
+                const r1 = sys.createRobot(sc.robots[0]), r2 = sys.createRobot(sc.robots[1]);
+                log('info', `  ${sc.robots[0].name} vs ${sc.robots[1].name}`);
+                let w1 = 0, last = null, lastLog = null, det = true, first = null;
+                for (let b = 0; b < sc.battles; b++) {
+                    const seed = sc.seed || (2026 + b);
+                    if (typeof sys.battle === 'function') await Promise.race([sys.battle(r1, r2, seed), sleep(15000)]);
+                    last = typeof sys.getResult === 'function' ? sys.getResult() : null;
+                    lastLog = typeof sys.getEventLog === 'function' ? sys.getEventLog() : null;
+                    if (last && last.winner === r1) w1++;
+                    if (sc.seed && b === 0) first = JSON.stringify(last);
+                    if (sc.seed && b === 1 && JSON.stringify(last) !== first) det = false;
+                }
+                const wr = sc.battles > 0 ? w1 / sc.battles : 0.5;
+                log('info', `  ${sc.battles}局: ${sc.robots[0].name}胜率=${(wr * 100).toFixed(0)}%`);
+                for (let i = 1; i < sc.checks.length; i++) {
+                    const c = sc.checks[i];
+                    try { const p = c.fn(sys, last, lastLog, wr, { deterministic: det }); out.push({ name: c.name, weight: c.weight, passed: !!p, error: p ? null : '未满足' }) }
+                    catch (e) { out.push({ name: c.name, weight: c.weight, passed: false, error: e.message }) }
+                }
+            } catch (e) { sc.checks.slice(1).forEach(c => out.push({ name: c.name, weight: c.weight, passed: false, error: e.message })) }
+            return out;
+        }
+
+        function addRow(name, pct, checks, metrics) {
+            const tr = document.createElement('tr');
+            const cls = pct === 100 ? 'badge-pass' : pct >= 50 ? 'badge-warn' : 'badge-fail';
+            const txt = pct === 100 ? '通过' : pct >= 50 ? '部分' : '失败';
+            let det = checks.map(c => `${c.passed ? '✅' : '❌'} ${c.name} <span style="color:#666">[\u00d7${c.weight}]</span>`).join('<br>');
+            if (metrics && metrics.totalDelivered !== undefined) {
+                const avgTotal = metrics.avgTotalTime ? metrics.avgTotalTime.toFixed(1) : 'N/A';
+                det += `<br><span style="color:#a78bfa;font-weight:600">📊 送达=${metrics.totalDelivered} | 等待=${metrics.avgWaitTime?.toFixed(1)}s | 乘梯=${metrics.avgTravelTime?.toFixed(1) || 'N/A'}s | 总耗时=${avgTotal}s</span>`;
+            }
+            tr.innerHTML = `<td>${name}</td><td><span class="badge ${cls}">${txt} ${pct}%</span></td><td style="font-size:18px;font-weight:700;color:${pct >= 80 ? '#6ee7b7' : pct >= 50 ? '#fcd34d' : '#fca5a5'}">${pct}%</td><td style="font-size:11px">${det}</td>`;
+            els.resultsBody.appendChild(tr);
+        }
+
+        // ========== EXPORT ==========
+        els.btnExport.onclick = () => {
+            const model = els.modelSelect.options[els.modelSelect.selectedIndex].text;
+            const caseName = els.caseSelect.options[els.caseSelect.selectedIndex].text;
+            let tw = 0, pw = 0;
+            state.results.forEach(r => r.checks.forEach(c => { tw += c.weight; if (c.passed) pw += c.weight }));
+            const rate = tw > 0 ? Math.round(pw / tw * 100) : 0;
+            const base = state.currentRound === '1' ? 60 : 25;
+
+            let rpt = `# 验收报告\n\n- 模型: ${model}\n- Case: ${caseName}\n- Round: ${state.currentRound}\n- 时间: ${new Date().toLocaleString()}\n- 加权通过率: ${rate}%\n- 得分: ${base} \u00d7 ${rate}% = ${(base * rate / 100).toFixed(1)} 分\n\n`;
+            state.results.forEach(r => {
+                rpt += `## ${r.scenario}\n`;
+                if (r.error) rpt += `> 异常: ${r.error}\n`;
+                r.checks.forEach(c => rpt += `- ${c.passed ? '✅' : '❌'} ${c.name} [权重\u00d7${c.weight}]${c.error && !c.passed ? ' (' + c.error + ')' : ''}\n`);
+                if (r.metrics && r.metrics.totalDelivered !== undefined) {
+                    const m = r.metrics;
+                    const avgTotal = m.avgTotalTime ? m.avgTotalTime.toFixed(1) : 'N/A';
+                    rpt += `\n**指标详情**: 送达=${m.totalDelivered} | 平均等待=${m.avgWaitTime?.toFixed(1)}s | 平均乘梯=${m.avgTravelTime?.toFixed(1) || 'N/A'}s | 人均总耗时=${avgTotal}s | 最长等待=${m.maxWaitTime?.toFixed(1)}s\n`;
+                }
+                rpt += '\n';
+            });
+            // 总结电梯指标
+            const metricResults = state.results.filter(r => r.metrics && r.metrics.totalDelivered > 0);
+            if (metricResults.length > 0) {
+                let tp = 0, wt = 0;
+                metricResults.forEach(r => { tp += r.metrics.totalDelivered; wt += r.metrics.avgTotalTime * r.metrics.totalDelivered; });
+                rpt += `## 📊 综合指标\n\n- 加权平均人均总耗时: ${(wt / tp).toFixed(1)}s\n- 基于 ${tp} 人送达数据，跨 ${metricResults.length} 个场景\n\n`;
+            }
+
+            const blob = new Blob([rpt], { type: 'text/markdown' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `验收_${state.currentCase}_R${state.currentRound}_${state.currentModel}_${Date.now()}.md`;
+            a.click();
+        };
+    </script>
+</body>
+
+</html>
